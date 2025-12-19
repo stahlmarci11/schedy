@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SCHEDY – Feladatok</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; }
+    .top { display:flex; justify-content: space-between; align-items:center; gap:12px; }
+    .muted { color: #666; font-size: 14px; }
+    .grid { display:grid; grid-template-columns: 360px 1fr; gap: 12px; align-items:start; }
+    .card { padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+    input, textarea, button { padding: 10px; font-size: 16px; }
+    textarea { resize: vertical; min-height: 70px; }
+    button { cursor:pointer; }
+    a { color: #0b5ed7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .error { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 10px; margin: 12px 0; }
+    .event { padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-top: 12px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .pill { display:inline-block; padding: 4px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; }
+    .divider { border-top: 1px solid #eee; margin: 14px 0; }
+
+    .cal-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .dow { font-size: 12px; color:#666; text-align:center; }
+    .day { border:1px solid #eee; border-radius:10px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .day.empty { border-color: transparent; background: transparent; }
+    .day.pending { background: #e0e0e0; }
+    .day.yes { background: #d4edda; }
+    .day.no { background: #f8d7da; }
+    .day.maybe { background: #fff3cd; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1 style="margin:0;">SCHEDY</h1>
+    <div class="row">
+      <a href="/">Főoldal</a>
+      <span class="muted">Belépve: <strong>{{ user.name }}</strong></span>
+      <form method="post" action="/logout" style="display:inline;">
+        <button type="submit">Kilépés</button>
+      </form>
+    </div>
+  </div>
+
+  {% set err = request.query_params.get("error") %}
+  {% if err == "INVITE_UNKNOWN" %}
+    <div class="error">Nem létező felhasználónevet adtál meg meghívásnál. (Esemény nem lett létrehozva.)</div>
+  {% elif err == "DESC_TOO_LONG" %}
+    <div class="error">Az esemény leírása túl hosszú (max 300).</div>
+  {% elif err == "COMMENT_TOO_LONG" %}
+    <div class="error">A komment túl hosszú (max 300).</div>
+  {% elif err == "NOT_CREATOR" %}
+    <div class="error">Ezt csak a szervező teheti meg.</div>
+  {% elif err == "NO_EVENT" %}
+    <div class="error">Nem találom az eseményt.</div>
+  {% elif err == "NO_SUGGESTION" %}
+    <div class="error">Nem találom a javaslatot.</div>
+  {% elif err == "BAD_VOTE" %}
+    <div class="error">Hibás szavazat.</div>
+  {% elif err == "FORBIDDEN" %}
+    <div class="error">Ehhez az eseményhez nincs hozzáférésed.</div>
+  {% endif %}
+
+  <div class="grid" style="margin-top:12px;">
+    <div class="card">
+      <strong>{{ month_cal.month_name }} {{ month_cal.year }}</strong>
+      <div class="cal-grid" style="margin-top:8px;">
+        <div class="dow">H</div><div class="dow">K</div><div class="dow">Sze</div>
+        <div class="dow">Cs</div><div class="dow">P</div><div class="dow">Szo</div><div class="dow">V</div>
+
+        {% for week in month_cal.weeks %}
+          {% for daynum in week %}
+            {% if daynum == 0 %}
+              <div class="day empty"></div>
+            {% else %}
+              {% set iso = "%04d-%02d-%02d"|format(month_cal.year, month_cal.month, daynum) %}
+              {% set cls = day_classes.get(iso, "empty") %}
+              <div class="day {{ cls }}">{{ daynum }}</div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <div class="muted" style="margin-top:10px;">
+        Szürke: van megválaszolatlan esemény.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0;">Feladatok</h2>
+      <div class="muted" style="margin-top:6px;">Csak a meghívott események látszanak.</div>
+
+      <div class="event" style="margin-top:12px;">
+        <h3 style="margin-top:0;">Új esemény (szervező)</h3>
+        <form method="post" action="/add" style="display:grid; gap:10px;">
+          <input name="title" placeholder="Esemény neve" required />
+          <div class="row">
+            <input name="date_" type="date" required />
+            <input name="time" type="time" required />
+          </div>
+          <textarea name="description" maxlength="300" placeholder="Leírás (max 300 karakter)"></textarea>
+          <input name="invitees" placeholder="Meghívottak username (pl. anya, apa, bence)" />
+          <button type="submit">Hozzáadás + Meghívás</button>
+        </form>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3 style="margin:0;">Válaszra vár</h3>
+      <div class="muted" style="margin-top:6px;">Ezekre még nem válaszoltál.</div>
+
+      {% if pending_events|length == 0 %}
+        <div class="muted" style="margin-top:10px;">Nincs válaszra váró esemény 🎉</div>
+      {% endif %}
+
+      {% for e in pending_events %}
+        <div class="event">
+          <div><strong>{{ e.title }}</strong></div>
+          <div class="muted">{{ e.starts_at.strftime("%Y-%m-%d %H:%M") }}</div>
+          {% if e.description %}<div class="muted">Leírás: {{ e.description }}</div>{% endif %}
+          {% if e.creator_name %}<div class="muted">Szervező: {{ e.creator_name }}</div>{% endif %}
+
+          {% if e.is_creator %}
+            <div class="muted" style="margin-top:8px;">
+              <strong>Meghívottak:</strong>
+              {% if e.invitees|length == 0 %}(nincs){% endif %}
+              {% for p in e.invitees %} {{ p.name }} ({{ p.username }}){% if not loop.last %},{% endif %}{% endfor %}
+            </div>
+
+            <form method="post" action="/invite" class="row" style="margin-top:8px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input name="username" placeholder="Új meghívott username" />
+              <button type="submit">Meghívás</button>
+            </form>
+          {% endif %}
+
+          <h4>Visszajelzés + komment</h4>
+          <div class="row">
+            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input type="hidden" name="status" value="yes">
+              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)"></textarea>
+              <button type="submit">✅ Jövök</button>
+            </form>
+
+            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input type="hidden" name="status" value="maybe">
+              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)"></textarea>
+              <button type="submit">🤔 Talán</button>
+            </form>
+
+            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input type="hidden" name="status" value="no">
+              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)"></textarea>
+              <button type="submit">❌ Nem érek rá</button>
+            </form>
+          </div>
+
+          <h4 style="margin-top:14px;">Időpont-javaslat + visszajelzés</h4>
+          <form method="post" action="/suggest_time" class="row">
+            <input type="hidden" name="event_id" value="{{ e.id }}">
+            <input name="date_" type="date" required />
+            <input name="time" type="time" required />
+            <button type="submit">Javaslom</button>
+          </form>
+
+          {% for s in e.suggestions %}
+            <div style="margin-top:10px; padding:10px; border:1px solid #eee; border-radius:10px;">
+              <div class="row" style="justify-content:space-between;">
+                <div>
+                  <strong>{{ s.proposed_starts_at.strftime("%Y-%m-%d %H:%M") }}</strong>
+                  {% if s.accepted %} <span class="pill">Elfogadva</span>{% endif %}
+                  <div class="muted">Javasolta: {{ s.proposed_by_name }}</div>
+                </div>
+
+                <div class="row">
+                  <span class="pill">👍 {{ s.up }}</span>
+                  <span class="pill">👎 {{ s.down }}</span>
+
+                  <form method="post" action="/vote_time" style="display:inline;">
+                    <input type="hidden" name="suggestion_id" value="{{ s.id }}">
+                    <input type="hidden" name="vote" value="up">
+                    <button type="submit">
+                      {% if s.my_vote == "up" %}👍 Támogatom (visszavon){% else %}👍 Támogatom{% endif %}
+                    </button>
+                  </form>
+
+                  <form method="post" action="/vote_time" style="display:inline;">
+                    <input type="hidden" name="suggestion_id" value="{{ s.id }}">
+                    <input type="hidden" name="vote" value="down">
+                    <button type="submit">
+                      {% if s.my_vote == "down" %}👎 Nekem nem jó (visszavon){% else %}👎 Nekem nem jó{% endif %}
+                    </button>
+                  </form>
+
+                  {% if e.is_creator %}
+                    <form method="post" action="/accept_time" style="display:inline;">
+                      <input type="hidden" name="suggestion_id" value="{{ s.id }}">
+                      <button type="submit">✅ Elfogadom</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="divider"></div>
+
+      <h3 style="margin:0;">Már megválaszolt</h3>
+      <div class="muted" style="margin-top:6px;">Itt módosíthatod a választ.</div>
+
+      {% if answered_events|length == 0 %}
+        <div class="muted" style="margin-top:10px;">Még nincs megválaszolt esemény.</div>
+      {% endif %}
+
+      {% for e in answered_events %}
+        <div class="event">
+          <div><strong>{{ e.title }}</strong></div>
+          <div class="muted">{{ e.starts_at.strftime("%Y-%m-%d %H:%M") }}</div>
+          {% if e.description %}<div class="muted">Leírás: {{ e.description }}</div>{% endif %}
+          {% if e.creator_name %}<div class="muted">Szervező: {{ e.creator_name }}</div>{% endif %}
+
+          {% if e.is_creator %}
+            <div class="muted" style="margin-top:8px;">
+              <strong>Meghívottak:</strong>
+              {% if e.invitees|length == 0 %}(nincs){% endif %}
+              {% for p in e.invitees %} {{ p.name }} ({{ p.username }}){% if not loop.last %},{% endif %}{% endfor %}
+            </div>
+
+            <form method="post" action="/invite" class="row" style="margin-top:8px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input name="username" placeholder="Új meghívott username" />
+              <button type="submit">Meghívás</button>
+            </form>
+          {% endif %}
+
+          <h4>Visszajelzés + komment</h4>
+
+          <div class="row">
+            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input type="hidden" name="status" value="yes">
+              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "yes" %}{{ e.my_comment or "" }}{% endif %}</textarea>
+              <button type="submit">✅ Jövök</button>
+            </form>
+
+            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input type="hidden" name="status" value="maybe">
+              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "maybe" %}{{ e.my_comment or "" }}{% endif %}</textarea>
+              <button type="submit">🤔 Talán</button>
+            </form>
+
+            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+              <input type="hidden" name="event_id" value="{{ e.id }}">
+              <input type="hidden" name="status" value="no">
+              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "no" %}{{ e.my_comment or "" }}{% endif %}</textarea>
+              <button type="submit">❌ Nem érek rá</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

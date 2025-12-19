@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SCHEDY</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; }
+    .top { display:flex; justify-content: space-between; align-items:center; gap:12px; }
+    .muted { color: #666; font-size: 14px; }
+    .grid { display:grid; grid-template-columns: 360px 1fr; gap: 12px; align-items:start; }
+    .card { padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+    input, button { padding: 10px; font-size: 16px; }
+    button { cursor:pointer; }
+    a { color: #0b5ed7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: 8px; text-align:left; vertical-align: top; }
+    .pill { display:inline-block; padding: 4px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; }
+    .error { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 10px; margin: 12px 0; }
+
+    .cal-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .dow { font-size: 12px; color:#666; text-align:center; }
+    .day { border:1px solid #eee; border-radius:10px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .day.empty { border-color: transparent; background: transparent; }
+    .day.pending { background: #e0e0e0; }
+    .day.yes { background: #d4edda; }
+    .day.no { background: #f8d7da; }
+    .day.maybe { background: #fff3cd; }
+
+    ul { margin: 8px 0 0 18px; }
+    li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1 style="margin:0;">SCHEDY</h1>
+
+    {% if user %}
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <span class="muted">Belépve: <strong>{{ user.name }}</strong></span>
+        <a href="/tasks">Feladatok</a>
+        <form method="post" action="/logout" style="display:inline;">
+          <button type="submit">Kilépés</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  {% set err = request.query_params.get("error") %}
+  {% if err == "BAD_LOGIN" %}
+    <div class="error">Hibás felhasználónév vagy jelszó.</div>
+  {% elif err == "EMAIL_EXISTS" %}
+    <div class="error">Ez az email már regisztrálva van.</div>
+  {% elif err == "USERNAME_EXISTS" %}
+    <div class="error">Ez a felhasználónév már foglalt.</div>
+  {% elif err == "PW_TOO_LONG" %}
+    <div class="error">A jelszó túl hosszú.</div>
+  {% elif err == "LOGIN_REQUIRED" %}
+    <div class="error">Ehhez be kell lépned.</div>
+  {% elif err == "NAME_REQUIRED" %}
+    <div class="error">Kérlek add meg a keresztnevet.</div>
+  {% elif err == "USERNAME_REQUIRED" %}
+    <div class="error">Kérlek add meg a felhasználónevet.</div>
+  {% endif %}
+
+  <div class="grid" style="margin-top:12px;">
+    <div class="card">
+      <strong>{{ month_cal.month_name }} {{ month_cal.year }}</strong>
+      <div class="cal-grid" style="margin-top:8px;">
+        <div class="dow">H</div><div class="dow">K</div><div class="dow">Sze</div>
+        <div class="dow">Cs</div><div class="dow">P</div><div class="dow">Szo</div><div class="dow">V</div>
+
+        {% for week in month_cal.weeks %}
+          {% for daynum in week %}
+            {% if daynum == 0 %}
+              <div class="day empty"></div>
+            {% else %}
+              {% set iso = "%04d-%02d-%02d"|format(month_cal.year, month_cal.month, daynum) %}
+              {% set cls = day_classes.get(iso, "empty") %}
+              <div class="day {{ cls }}">{{ daynum }}</div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+
+      <div class="muted" style="margin-top:10px;">
+        {% if not user %}
+          Bejelentkezés nélkül privát mód van: a naptár nem mutat eseményeket.
+        {% else %}
+          Színek: szürke (vár), zöld (jövök), sárga (talán), piros (nem).
+        {% endif %}
+      </div>
+
+      {% if not user %}
+        <div style="margin-top:12px;">
+          <div class="card" style="padding:12px; border-color:#eee;">
+            <h3 style="margin-top:0;">Belépés</h3>
+            <form method="post" action="/login" style="display:grid; gap:10px;">
+              <input name="username" placeholder="Felhasználónév" required />
+              <input name="password" type="password" placeholder="Jelszó" required />
+              <button type="submit">Belépés</button>
+            </form>
+          </div>
+
+          <div class="card" style="padding:12px; border-color:#eee; margin-top:10px;">
+            <h3 style="margin-top:0;">Regisztráció</h3>
+            <form method="post" action="/register" style="display:grid; gap:10px;">
+              <input name="name" placeholder="Keresztnév (pl. Anya)" required />
+              <input name="username" placeholder="Felhasználónév (pl. anya)" required />
+              <input name="email" type="email" placeholder="Email (értesítésekhez)" required />
+              <input name="password" type="password" placeholder="Jelszó" required />
+              <button type="submit">Regisztráció</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h2 style="margin:0;">Főoldal – Áttekintés</h2>
+        {% if user %}
+          <a href="/tasks">Feladatok →</a>
+        {% endif %}
+      </div>
+
+      {% if not user %}
+        <div class="muted" style="margin-top:10px;">
+          Jelentkezz be, hogy lásd a meghívott eseményeket.
+        </div>
+      {% endif %}
+
+      {% if user and not events_exist %}
+        <div class="muted" style="margin-top:10px;">Nincs meghívott eseményed.</div>
+      {% endif %}
+
+      {% for e in dashboard %}
+        <div style="margin-top:14px; padding-top:14px; border-top:1px solid #eee;">
+          <div>
+            <div><strong>{{ e.title }}</strong></div>
+            <div class="muted">{{ e.starts_at.strftime("%Y-%m-%d %H:%M") }}</div>
+            {% if e.description %}
+              <div class="muted">Leírás: {{ e.description }}</div>
+            {% endif %}
+            {% if e.creator_name %}
+              <div class="muted">Szervező: {{ e.creator_name }}</div>
+            {% endif %}
+          </div>
+
+          {% if e.suggestions and e.suggestions|length > 0 %}
+            <div class="muted" style="margin-top:10px;">
+              <strong>Időpont-javaslatok:</strong>
+              <ul>
+                {% for s in e.suggestions %}
+                  <li>
+                    {{ s.time.strftime("%Y-%m-%d %H:%M") }} — {{ s.by }}
+                    (👍 {{ s.up }}, 👎 {{ s.down }})
+                    {% if s.accepted %} <strong>✅ elfogadva</strong>{% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          <table style="margin-top:10px;">
+            <thead>
+              <tr>
+                <th>Ki</th>
+                <th>Válasz</th>
+                <th>Komment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in e.rows %}
+                <tr>
+                  <td>{{ r.user_name }}</td>
+                  <td>
+                    {% if r.status == "yes" %}<span class="pill">Jövök</span>
+                    {% elif r.status == "maybe" %}<span class="pill">Talán</span>
+                    {% elif r.status == "no" %}<span class="pill">Nem</span>
+                    {% else %}<span class="pill">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="muted">{{ r.comment or "" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>
