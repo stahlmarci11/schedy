@@ -10,16 +10,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-
-    # Megjelenített név (keresztnév)
     name = Column(String, nullable=False)
-
-    # Belépési név (username)
     username = Column(String, unique=True, index=True, nullable=False)
-
-    # Email csak tárolásra (értesítésekhez)
     email = Column(String, unique=True, index=True, nullable=False)
-
     password_hash = Column(String, nullable=False)
 
     events = relationship("Event", back_populates="creator")
@@ -37,9 +30,12 @@ class Event(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
-    starts_at = Column(DateTime, nullable=False)
 
-    description = Column(String, nullable=True)  # max 300-at app szinten ellenőrizzük
+    # ✅ esemény időintervallum
+    starts_at = Column(DateTime, nullable=False)
+    ends_at = Column(DateTime, nullable=False)
+
+    description = Column(String, nullable=True)
 
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     creator = relationship("User", back_populates="events")
@@ -54,20 +50,14 @@ class EventInvite(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
-
-    # akit meghívtunk
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-
-    # aki meghívta (általában a szervező)
     invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     event = relationship("Event", back_populates="invites")
     user = relationship("User", back_populates="invites", foreign_keys=[user_id])
     invited_by = relationship("User", back_populates="sent_invites", foreign_keys=[invited_by_user_id])
 
-    __table_args__ = (
-        UniqueConstraint("event_id", "user_id", name="uq_event_user_invite"),
-    )
+    __table_args__ = (UniqueConstraint("event_id", "user_id", name="uq_event_user_invite"),)
 
 
 class EventResponse(Base):
@@ -77,15 +67,13 @@ class EventResponse(Base):
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    status = Column(String, nullable=False)   # "yes" | "maybe" | "no"
-    comment = Column(String, nullable=True)   # max 300 app szinten
+    status = Column(String, nullable=False)  # "yes" | "maybe" | "no"
+    comment = Column(String, nullable=True)
 
     event = relationship("Event", back_populates="responses")
     user = relationship("User", back_populates="responses")
 
-    __table_args__ = (
-        UniqueConstraint("event_id", "user_id", name="uq_event_user_response"),
-    )
+    __table_args__ = (UniqueConstraint("event_id", "user_id", name="uq_event_user_response"),)
 
 
 class EventTimeSuggestion(Base):
@@ -95,8 +83,13 @@ class EventTimeSuggestion(Base):
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
 
     proposed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # ✅ javaslat is időintervallum
     proposed_starts_at = Column(DateTime, nullable=False)
+    proposed_ends_at = Column(DateTime, nullable=False)
+
     accepted = Column(Boolean, nullable=False, default=False)
+    comment = Column(String, nullable=True)
 
     event = relationship("Event", back_populates="suggestions")
     proposed_by = relationship("User", back_populates="suggestions")
@@ -104,7 +97,7 @@ class EventTimeSuggestion(Base):
     votes = relationship("EventTimeVote", back_populates="suggestion", cascade="all, delete-orphan")
 
     __table_args__ = (
-        UniqueConstraint("event_id", "proposed_starts_at", name="uq_event_suggested_time"),
+        UniqueConstraint("event_id", "proposed_starts_at", "proposed_ends_at", name="uq_event_suggested_range"),
     )
 
 
@@ -115,12 +108,9 @@ class EventTimeVote(Base):
     suggestion_id = Column(Integer, ForeignKey("event_time_suggestions.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    # "up" = támogatom, "down" = nekem nem jó
-    vote = Column(String, nullable=False)
+    vote = Column(String, nullable=False)  # "up" | "down"
 
     suggestion = relationship("EventTimeSuggestion", back_populates="votes")
     user = relationship("User", back_populates="suggestion_votes")
 
-    __table_args__ = (
-        UniqueConstraint("suggestion_id", "user_id", name="uq_suggestion_user_vote"),
-    )
+    __table_args__ = (UniqueConstraint("suggestion_id", "user_id", name="uq_suggestion_user_vote"),)

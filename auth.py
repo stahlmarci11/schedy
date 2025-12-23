@@ -1,10 +1,10 @@
+import os
 from passlib.context import CryptContext
 from itsdangerous import URLSafeSerializer, BadSignature
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Fejlesztéshez jó. Később ezt tedd .env-be és legyen hosszú, random.
-SECRET_KEY = "CSERELD_LE_EGY_HOSSZU_RANDOM_SZOVEGRE_123456789"
+SECRET_KEY = os.getenv("SECRET_KEY", "DEV_ONLY_CHANGE_ME")
 serializer = URLSafeSerializer(SECRET_KEY, salt="session")
 
 

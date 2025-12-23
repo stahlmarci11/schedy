@@ -1,0 +1,161 @@
+<div class="event">
+  <div><strong>{{ e.title }}</strong></div>
+
+  <div class="muted" style="margin-top:6px;">
+    Kezdés: {{ e.starts_at.strftime("%Y-%m-%d %H:%M") }}<br>
+    Vége: {{ e.ends_at.strftime("%Y-%m-%d %H:%M") }}
+  </div>
+
+  {% if e.description %}
+    <div class="muted">Leírás: {{ e.description }}</div>
+  {% endif %}
+  {% if e.creator_name %}
+    <div class="muted">Szervező: {{ e.creator_name }}</div>
+  {% endif %}
+
+  {% if e.is_creator %}
+    <div class="muted" style="margin-top:10px;">
+      <strong>Meghívottak:</strong>
+      {% if e.invitees|length == 0 %}(nincs){% endif %}
+      {% for p in e.invitees %} {{ p.name }}{% if not loop.last %},{% endif %}{% endfor %}
+    </div>
+
+    <!-- Modern checkbox picker (meghívás) -->
+    <form method="post" action="/invite" style="margin-top:10px; display:grid; gap:10px;">
+      <input type="hidden" name="event_id" value="{{ e.id }}">
+
+      <div class="picker js-picker" data-title="Meghívottak">
+        <button type="button" class="picker-trigger js-picker-open">
+          <div class="title">Új meghívottak hozzáadása</div>
+          <div class="sub js-picker-sub">Koppints a kiválasztáshoz</div>
+          <div class="chips js-picker-chips"></div>
+        </button>
+
+        <div class="picker-backdrop js-picker-backdrop" aria-hidden="true"></div>
+        <div class="picker-sheet js-picker-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+          <div class="picker-header">
+            <div class="h-title">Meghívottak</div>
+            <div class="h-actions">
+              <button type="button" class="js-picker-clear">Összes törlése</button>
+              <button type="button" class="js-picker-close">Bezár</button>
+            </div>
+          </div>
+
+          <div class="picker-body">
+            <input class="picker-search js-picker-search" placeholder="Keresés névre..." />
+            <div class="picker-list js-picker-list">
+              {% for u in users %}
+                <label class="pick-row" data-name="{{ u.name|lower }}">
+                  <input type="checkbox" name="invitee_ids" value="{{ u.id }}">
+                  <div class="name">{{ u.name }}</div>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="picker-footer">
+            <button type="button" class="js-picker-done">Kész</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit">Meghívás</button>
+    </form>
+  {% endif %}
+
+  <h4 style="margin-top:16px;">Visszajelzés + komment</h4>
+
+  <div class="row" style="gap:12px;">
+    <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+      <input type="hidden" name="event_id" value="{{ e.id }}">
+      <input type="hidden" name="status" value="yes">
+      <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "yes" %}{{ e.my_comment or "" }}{% endif %}</textarea>
+      <button type="submit">✅ Jövök</button>
+    </form>
+
+    <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+      <input type="hidden" name="event_id" value="{{ e.id }}">
+      <input type="hidden" name="status" value="maybe">
+      <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "maybe" %}{{ e.my_comment or "" }}{% endif %}</textarea>
+      <button type="submit">🤔 Talán</button>
+    </form>
+
+    <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
+      <input type="hidden" name="event_id" value="{{ e.id }}">
+      <input type="hidden" name="status" value="no">
+      <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "no" %}{{ e.my_comment or "" }}{% endif %}</textarea>
+      <button type="submit">❌ Nem érek rá</button>
+    </form>
+  </div>
+
+  <h4 style="margin-top:16px;">Időpont-javaslat (tól–ig) + szavazás</h4>
+  <div class="muted" style="margin-top:-6px;">
+    Ha új időpontot javasolsz, a jelenlegi időpont neked automatikusan „Nem”.
+  </div>
+
+  <!-- ✅ tól–ig javaslat + komment -->
+  <form method="post" action="/suggest_time" style="margin-top:10px; display:grid; gap:10px;">
+    <input type="hidden" name="event_id" value="{{ e.id }}">
+
+    <div class="muted">Kezdés (tól)</div>
+    <div class="row">
+      <input name="start_date" type="date" required />
+      <input name="start_time" type="time" required />
+    </div>
+
+    <div class="muted">Vége (ig)</div>
+    <div class="row">
+      <input name="end_date" type="date" required />
+      <input name="end_time" type="time" required />
+    </div>
+
+    <textarea name="comment" maxlength="300" placeholder="Komment a javaslathoz (max 300)"></textarea>
+    <button type="submit">Javaslom</button>
+  </form>
+
+  {% for s in e.suggestions %}
+    <div style="margin-top:10px; padding:10px; border:1px solid #eee; border-radius:14px;">
+      <div class="row" style="justify-content:space-between;">
+        <div style="min-width:240px;">
+          <strong>
+            {{ s.proposed_starts_at.strftime("%Y-%m-%d %H:%M") }}
+            → {{ s.proposed_ends_at.strftime("%Y-%m-%d %H:%M") }}
+          </strong>
+          {% if s.accepted %} <span class="pill">Elfogadva</span>{% endif %}
+          <div class="muted">Javasolta: {{ s.proposed_by_name }}</div>
+          {% if s.comment %}<div class="muted"><em>{{ s.comment }}</em></div>{% endif %}
+        </div>
+
+        <div class="row">
+          <span class="pill">👍 {{ s.up }}</span>
+          <span class="pill">👎 {{ s.down }}</span>
+
+          <!-- ✅ mindenkinek látszik -->
+          <form method="post" action="/vote_time" style="display:inline;">
+            <input type="hidden" name="suggestion_id" value="{{ s.id }}">
+            <input type="hidden" name="vote" value="up">
+            <button type="submit">
+              {% if s.my_vote == "up" %}👍 Támogatom (visszavon){% else %}👍 Támogatom{% endif %}
+            </button>
+          </form>
+
+          <form method="post" action="/vote_time" style="display:inline;">
+            <input type="hidden" name="suggestion_id" value="{{ s.id }}">
+            <input type="hidden" name="vote" value="down">
+            <button type="submit">
+              {% if s.my_vote == "down" %}👎 Nekem nem jó (visszavon){% else %}👎 Nekem nem jó{% endif %}
+            </button>
+          </form>
+
+          <!-- ✅ elfogadás csak szervező -->
+          {% if e.is_creator %}
+            <form method="post" action="/accept_time" style="display:inline;">
+              <input type="hidden" name="suggestion_id" value="{{ s.id }}">
+              <button type="submit">✅ Elfogadom</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>

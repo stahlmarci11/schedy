@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtualenv
+.venv/
+
+# Database
+family_calendar.db
+
+# OS
+.DS_Store
+
+# Env
+.env

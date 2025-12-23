@@ -5,31 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SCHEDY</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; }
-    .top { display:flex; justify-content: space-between; align-items:center; gap:12px; }
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; background:#fafafa; }
+    .top { display:flex; justify-content: space-between; align-items:center; gap:12px; flex-wrap:wrap; }
     .muted { color: #666; font-size: 14px; }
     .grid { display:grid; grid-template-columns: 360px 1fr; gap: 12px; align-items:start; }
-    .card { padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+    .card { padding: 12px; border: 1px solid #e6e6e6; border-radius: 14px; background:#fff; box-shadow: 0 2px 10px rgba(0,0,0,.03); }
     input, button { padding: 10px; font-size: 16px; }
-    button { cursor:pointer; }
+    button { cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; }
     a { color: #0b5ed7; text-decoration: none; }
     a:hover { text-decoration: underline; }
     table { width: 100%; border-collapse: collapse; }
     th, td { border-bottom: 1px solid #eee; padding: 8px; text-align:left; vertical-align: top; }
-    .pill { display:inline-block; padding: 4px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; }
+    .pill { display:inline-block; padding: 4px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; background:#fff; }
     .error { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 10px; margin: 12px 0; }
 
     .cal-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
     .dow { font-size: 12px; color:#666; text-align:center; }
-    .day { border:1px solid #eee; border-radius:10px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .day { position:relative; border:1px solid #eee; border-radius:12px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:700; background:#fff; }
     .day.empty { border-color: transparent; background: transparent; }
     .day.pending { background: #e0e0e0; }
     .day.yes { background: #d4edda; }
     .day.no { background: #f8d7da; }
     .day.maybe { background: #fff3cd; }
 
-    ul { margin: 8px 0 0 18px; }
-    li { margin: 4px 0; }
+    .badge {
+      position:absolute; top:4px; right:6px;
+      background:#0b5ed7; color:#fff; font-size:12px;
+      padding:2px 7px; border-radius:999px;
+    }
+
+    .seg { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .seg a { border:1px solid #e6e6e6; padding:8px 10px; border-radius:12px; background:#fff; }
+    .seg a.active { border-color:#0b5ed7; box-shadow: 0 3px 14px rgba(11,94,215,.12); }
+
+    .navrow { display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      body { margin: 14px auto; }
+    }
   </style>
 </head>
 <body>
@@ -48,47 +62,114 @@
   </div>
 
   {% set err = request.query_params.get("error") %}
-  {% if err == "BAD_LOGIN" %}
-    <div class="error">Hibás felhasználónév vagy jelszó.</div>
-  {% elif err == "EMAIL_EXISTS" %}
-    <div class="error">Ez az email már regisztrálva van.</div>
-  {% elif err == "USERNAME_EXISTS" %}
-    <div class="error">Ez a felhasználónév már foglalt.</div>
-  {% elif err == "PW_TOO_LONG" %}
-    <div class="error">A jelszó túl hosszú.</div>
-  {% elif err == "LOGIN_REQUIRED" %}
-    <div class="error">Ehhez be kell lépned.</div>
-  {% elif err == "NAME_REQUIRED" %}
-    <div class="error">Kérlek add meg a keresztnevet.</div>
-  {% elif err == "USERNAME_REQUIRED" %}
-    <div class="error">Kérlek add meg a felhasználónevet.</div>
+  {% if err == "BAD_LOGIN" %}<div class="error">Hibás név vagy jelszó.</div>
+  {% elif err == "EMAIL_EXISTS" %}<div class="error">Ez az email már regisztrálva van.</div>
+  {% elif err == "USERNAME_EXISTS" %}<div class="error">Ez a keresztnév már foglalt.</div>
+  {% elif err == "PW_TOO_LONG" %}<div class="error">A jelszó túl hosszú.</div>
+  {% elif err == "LOGIN_REQUIRED" %}<div class="error">Ehhez be kell lépned.</div>
+  {% elif err == "NAME_REQUIRED" %}<div class="error">Kérlek add meg a keresztnevet.</div>
+  {% elif err == "BAD_RANGE" %}<div class="error">Hibás dátum/időtartomány.</div>
   {% endif %}
 
   <div class="grid" style="margin-top:12px;">
     <div class="card">
-      <strong>{{ month_cal.month_name }} {{ month_cal.year }}</strong>
-      <div class="cal-grid" style="margin-top:8px;">
-        <div class="dow">H</div><div class="dow">K</div><div class="dow">Sze</div>
-        <div class="dow">Cs</div><div class="dow">P</div><div class="dow">Szo</div><div class="dow">V</div>
+      <strong>Naptár</strong>
 
-        {% for week in month_cal.weeks %}
-          {% for daynum in week %}
-            {% if daynum == 0 %}
-              <div class="day empty"></div>
-            {% else %}
-              {% set iso = "%04d-%02d-%02d"|format(month_cal.year, month_cal.month, daynum) %}
-              {% set cls = day_classes.get(iso, "empty") %}
-              <div class="day {{ cls }}">{{ daynum }}</div>
-            {% endif %}
-          {% endfor %}
-        {% endfor %}
+      <div class="seg">
+        <a class="{% if mode=='month' %}active{% endif %}" href="/?mode=month&y={{ month_cal.year }}&m={{ month_cal.month }}">Hónap</a>
+        <a class="{% if mode=='week' %}active{% endif %}" href="/?mode=week&day={{ anchor_day.isoformat() }}">Hét</a>
+        <a class="{% if mode=='day' %}active{% endif %}" href="/?mode=day&day={{ anchor_day.isoformat() }}">Nap</a>
       </div>
+
+      {% if mode == "month" %}
+        <div class="navrow">
+          <form method="get" action="/" style="display:inline;">
+            <input type="hidden" name="mode" value="month">
+            <input type="hidden" name="y" value="{{ prev_y }}">
+            <input type="hidden" name="m" value="{{ prev_m }}">
+            <button type="submit" {% if not can_prev %}disabled{% endif %}>← Előző</button>
+          </form>
+          <strong>{{ month_cal.month_name }} {{ month_cal.year }}</strong>
+          <form method="get" action="/" style="display:inline;">
+            <input type="hidden" name="mode" value="month">
+            <input type="hidden" name="y" value="{{ next_y }}">
+            <input type="hidden" name="m" value="{{ next_m }}">
+            <button type="submit" {% if not can_next %}disabled{% endif %}>Következő →</button>
+          </form>
+        </div>
+
+        <div class="cal-grid" style="margin-top:10px;">
+          <div class="dow">H</div><div class="dow">K</div><div class="dow">Sze</div>
+          <div class="dow">Cs</div><div class="dow">P</div><div class="dow">Szo</div><div class="dow">V</div>
+
+          {% for week in month_cal.weeks %}
+            {% for daynum in week %}
+              {% if daynum == 0 %}
+                <div class="day empty"></div>
+              {% else %}
+                {% set iso = "%04d-%02d-%02d"|format(month_cal.year, month_cal.month, daynum) %}
+                {% set cls = day_classes.get(iso, "empty") %}
+                {% set cnt = day_counts.get(iso, 0) %}
+                <a href="/?mode=day&day={{ iso }}" style="text-decoration:none; color:inherit;">
+                  <div class="day {{ cls }}">
+                    {{ daynum }}
+                    {% if cnt > 1 %}<span class="badge">{{ cnt }}</span>{% endif %}
+                  </div>
+                </a>
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+
+      {% elif mode == "week" %}
+        <div class="navrow">
+          <a href="/?mode=week&day={{ week_prev_day }}">← Előző hét</a>
+          <strong>Hét: {{ anchor_day.isoformat() }}</strong>
+          <a href="/?mode=week&day={{ week_next_day }}">Következő hét →</a>
+        </div>
+
+        <div style="margin-top:10px;">
+          {% for d in week_days %}
+            {% set iso = d.isoformat() %}
+            {% set cnt = day_counts.get(iso, 0) %}
+            <div style="padding:10px; border:1px solid #eee; border-radius:12px; margin-top:8px;">
+              <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                <strong>{{ iso }}</strong>
+                <a href="/?mode=day&day={{ iso }}">Napi nézet →</a>
+              </div>
+              <div class="muted">
+                {% if cnt == 0 %}Nincs esemény{% else %}Események: {{ cnt }}{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+      {% else %}
+        <div class="navrow">
+          <a href="/?mode=day&day={{ day_prev }}">← Előző nap</a>
+          <strong>{{ anchor_day.isoformat() }}</strong>
+          <a href="/?mode=day&day={{ day_next }}">Következő nap →</a>
+        </div>
+
+        <div style="margin-top:10px;">
+          {% if day_list_events|length == 0 %}
+            <div class="muted">Nincs esemény ezen a napon.</div>
+          {% endif %}
+          {% for ev in day_list_events %}
+            <div style="padding:10px; border:1px solid #eee; border-radius:12px; margin-top:8px;">
+              <strong>{{ ev.title }}</strong>
+              <div class="muted">{{ ev.starts_at.strftime("%Y-%m-%d %H:%M") }} → {{ ev.ends_at.strftime("%Y-%m-%d %H:%M") }}</div>
+              {% if ev.description %}<div class="muted">{{ ev.description }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
 
       <div class="muted" style="margin-top:10px;">
         {% if not user %}
           Bejelentkezés nélkül privát mód van: a naptár nem mutat eseményeket.
         {% else %}
-          Színek: szürke (vár), zöld (jövök), sárga (talán), piros (nem).
+          Színek: szürke (vár), zöld (jövök), sárga (talán), piros (nem). A kék szám: több esemény.
         {% endif %}
       </div>
 
@@ -97,7 +178,7 @@
           <div class="card" style="padding:12px; border-color:#eee;">
             <h3 style="margin-top:0;">Belépés</h3>
             <form method="post" action="/login" style="display:grid; gap:10px;">
-              <input name="username" placeholder="Felhasználónév" required />
+              <input name="name" placeholder="Keresztnév (pl. Anya)" required />
               <input name="password" type="password" placeholder="Jelszó" required />
               <button type="submit">Belépés</button>
             </form>
@@ -107,7 +188,6 @@
             <h3 style="margin-top:0;">Regisztráció</h3>
             <form method="post" action="/register" style="display:grid; gap:10px;">
               <input name="name" placeholder="Keresztnév (pl. Anya)" required />
-              <input name="username" placeholder="Felhasználónév (pl. anya)" required />
               <input name="email" type="email" placeholder="Email (értesítésekhez)" required />
               <input name="password" type="password" placeholder="Jelszó" required />
               <button type="submit">Regisztráció</button>
@@ -139,7 +219,7 @@
         <div style="margin-top:14px; padding-top:14px; border-top:1px solid #eee;">
           <div>
             <div><strong>{{ e.title }}</strong></div>
-            <div class="muted">{{ e.starts_at.strftime("%Y-%m-%d %H:%M") }}</div>
+            <div class="muted">{{ e.starts_at.strftime("%Y-%m-%d %H:%M") }} → {{ e.ends_at.strftime("%Y-%m-%d %H:%M") }}</div>
             {% if e.description %}
               <div class="muted">Leírás: {{ e.description }}</div>
             {% endif %}
@@ -154,9 +234,10 @@
               <ul>
                 {% for s in e.suggestions %}
                   <li>
-                    {{ s.time.strftime("%Y-%m-%d %H:%M") }} — {{ s.by }}
-                    (👍 {{ s.up }}, 👎 {{ s.down }})
+                    {{ s.time_from.strftime("%Y-%m-%d %H:%M") }} → {{ s.time_to.strftime("%Y-%m-%d %H:%M") }}
+                    — {{ s.by }} (👍 {{ s.up }}, 👎 {{ s.down }})
                     {% if s.accepted %} <strong>✅ elfogadva</strong>{% endif %}
+                    {% if s.comment %} — <em>{{ s.comment }}</em>{% endif %}
                   </li>
                 {% endfor %}
               </ul>

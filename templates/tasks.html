@@ -5,30 +5,108 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SCHEDY – Feladatok</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; }
-    .top { display:flex; justify-content: space-between; align-items:center; gap:12px; }
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; background:#fafafa; }
+    .top { display:flex; justify-content: space-between; align-items:center; gap:12px; flex-wrap:wrap; }
     .muted { color: #666; font-size: 14px; }
     .grid { display:grid; grid-template-columns: 360px 1fr; gap: 12px; align-items:start; }
-    .card { padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+    .card { padding: 12px; border: 1px solid #e6e6e6; border-radius: 14px; background:#fff; box-shadow: 0 2px 10px rgba(0,0,0,.03); }
     input, textarea, button { padding: 10px; font-size: 16px; }
     textarea { resize: vertical; min-height: 70px; }
-    button { cursor:pointer; }
+    button { cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; }
+    button:hover { border-color:#c9c9c9; }
     a { color: #0b5ed7; text-decoration: none; }
     a:hover { text-decoration: underline; }
     .error { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 10px; margin: 12px 0; }
-    .event { padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-top: 12px; }
+    .event { padding: 12px; border: 1px solid #eee; border-radius: 14px; margin-top: 12px; background:#fff; }
     .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
-    .pill { display:inline-block; padding: 4px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; }
+    .pill { display:inline-block; padding: 4px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; background:#fff; }
     .divider { border-top: 1px solid #eee; margin: 14px 0; }
 
     .cal-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
     .dow { font-size: 12px; color:#666; text-align:center; }
-    .day { border:1px solid #eee; border-radius:10px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .day { border:1px solid #eee; border-radius:12px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; background:#fff; }
     .day.empty { border-color: transparent; background: transparent; }
     .day.pending { background: #e0e0e0; }
     .day.yes { background: #d4edda; }
     .day.no { background: #f8d7da; }
     .day.maybe { background: #fff3cd; }
+
+    /* Szebb almenü (tabs) */
+    .tabs { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:12px; }
+    .tab { display:flex; flex-direction:column; gap:4px; border:1px solid #e6e6e6; border-radius:14px; padding:12px; background:#fff; transition: transform .05s ease, border-color .1s ease, box-shadow .1s ease; }
+    .tab:hover { border-color:#d0d0d0; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+    .tab.active { border-color:#0b5ed7; box-shadow: 0 3px 14px rgba(11,94,215,.12); }
+    .tab-title { font-weight:700; }
+    .tab-sub { font-size:13px; color:#666; }
+
+    .month-nav { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .month-nav .btn { border:1px solid #ddd; background:#fff; border-radius:12px; padding:8px 10px; }
+    .month-nav .btn.disabled { opacity:.35; pointer-events:none; }
+
+    /* ====== Modern checkbox picker (mobile bottom sheet) ====== */
+    .picker { display:grid; gap:8px; }
+    .picker-trigger {
+      width:100%; text-align:left; border:1px solid #e6e6e6; background:#fff;
+      border-radius:14px; padding:12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.03);
+    }
+    .picker-trigger .title { font-weight:700; }
+    .picker-trigger .sub { font-size:13px; color:#666; margin-top:4px; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .chip { font-size:13px; border:1px solid #e6e6e6; background:#f6f6f6; border-radius:999px; padding:4px 10px; }
+
+    .picker-backdrop {
+      position:fixed; inset:0; background:rgba(0,0,0,.45);
+      display:none; z-index:50;
+    }
+    .picker-backdrop.open { display:block; }
+
+    .picker-sheet {
+      position:fixed; left:0; right:0; bottom:0;
+      background:#fff; border-radius:18px 18px 0 0;
+      transform: translateY(110%);
+      transition: transform .18s ease;
+      z-index:51;
+      max-height: 80vh;
+      display:flex; flex-direction:column;
+      box-shadow: 0 -10px 30px rgba(0,0,0,.18);
+    }
+    .picker-sheet.open { transform: translateY(0); }
+
+    .picker-header {
+      padding:12px; border-bottom:1px solid #eee;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .picker-header .h-title { font-weight:800; }
+    .picker-header .h-actions { display:flex; gap:8px; align-items:center; }
+    .picker-header button { padding:8px 10px; border-radius:12px; }
+
+    .picker-body { padding:12px; display:grid; gap:10px; overflow:auto; }
+    .picker-search { width:100%; border:1px solid #e6e6e6; border-radius:14px; padding:12px; }
+    .picker-list { display:grid; gap:8px; }
+    .pick-row {
+      display:flex; align-items:center; gap:10px;
+      border:1px solid #eee; border-radius:14px; padding:12px;
+    }
+    .pick-row input[type="checkbox"] { width:20px; height:20px; }
+    .pick-row .name { font-weight:700; }
+
+    .picker-footer {
+      padding:12px; border-top:1px solid #eee;
+      display:flex; gap:10px;
+    }
+    .picker-footer button { flex:1; padding:12px; border-radius:14px; }
+
+    @media (min-width: 861px) {
+      /* Desktopon kevésbé "modal": kisebb sheet */
+      .picker-sheet { left:calc(50% - 260px); right:auto; width:520px; border-radius:18px; bottom:24px; max-height:70vh; }
+    }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      body { margin: 14px auto; }
+      .tabs { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -45,7 +123,7 @@
 
   {% set err = request.query_params.get("error") %}
   {% if err == "INVITE_UNKNOWN" %}
-    <div class="error">Nem létező felhasználónevet adtál meg meghívásnál. (Esemény nem lett létrehozva.)</div>
+    <div class="error">Nem létező nevet adtál meg meghívásnál. (Esemény nem lett létrehozva.)</div>
   {% elif err == "DESC_TOO_LONG" %}
     <div class="error">Az esemény leírása túl hosszú (max 300).</div>
   {% elif err == "COMMENT_TOO_LONG" %}
@@ -60,12 +138,33 @@
     <div class="error">Hibás szavazat.</div>
   {% elif err == "FORBIDDEN" %}
     <div class="error">Ehhez az eseményhez nincs hozzáférésed.</div>
+  {% elif err == "BAD_RANGE" %}
+    <div class="error">Hibás dátum/időtartomány.</div>
   {% endif %}
 
   <div class="grid" style="margin-top:12px;">
     <div class="card">
-      <strong>{{ month_cal.month_name }} {{ month_cal.year }}</strong>
-      <div class="cal-grid" style="margin-top:8px;">
+      <div class="month-nav">
+        <form method="get" action="/tasks" style="display:flex; gap:8px; align-items:center;">
+          <input type="hidden" name="y" value="{{ prev_y }}">
+          <input type="hidden" name="m" value="{{ prev_m }}">
+          {% if day_filter %}<input type="hidden" name="day" value="{{ day_filter }}">{% endif %}
+          {% if view %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
+          <button class="btn {% if not can_prev %}disabled{% endif %}" type="submit">← Előző</button>
+        </form>
+
+        <strong>{{ month_cal.month_name }} {{ month_cal.year }}</strong>
+
+        <form method="get" action="/tasks" style="display:flex; gap:8px; align-items:center;">
+          <input type="hidden" name="y" value="{{ next_y }}">
+          <input type="hidden" name="m" value="{{ next_m }}">
+          {% if day_filter %}<input type="hidden" name="day" value="{{ day_filter }}">{% endif %}
+          {% if view %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
+          <button class="btn {% if not can_next %}disabled{% endif %}" type="submit">Következő →</button>
+        </form>
+      </div>
+
+      <div class="cal-grid" style="margin-top:10px;">
         <div class="dow">H</div><div class="dow">K</div><div class="dow">Sze</div>
         <div class="dow">Cs</div><div class="dow">P</div><div class="dow">Szo</div><div class="dow">V</div>
 
@@ -76,195 +175,247 @@
             {% else %}
               {% set iso = "%04d-%02d-%02d"|format(month_cal.year, month_cal.month, daynum) %}
               {% set cls = day_classes.get(iso, "empty") %}
-              <div class="day {{ cls }}">{{ daynum }}</div>
+              <a href="/tasks?day={{ iso }}{% if view %}&view={{ view }}{% endif %}" style="text-decoration:none; color:inherit;">
+                <div class="day {{ cls }}">{{ daynum }}</div>
+              </a>
             {% endif %}
           {% endfor %}
         {% endfor %}
       </div>
+
       <div class="muted" style="margin-top:10px;">
         Szürke: van megválaszolatlan esemény.
+        {% if day_filter %}
+          <br><strong>Napi szűrés:</strong> {{ day_filter }}
+          <br><a href="/tasks{% if view %}?view={{ view }}{% endif %}">Szűrés törlése</a>
+        {% endif %}
+      </div>
+
+      <div class="tabs">
+        <a class="tab {% if view == 'new' %}active{% endif %}" href="/tasks?view=new{% if day_filter %}&day={{ day_filter }}{% endif %}">
+          <div class="tab-title">Új esemény</div>
+          <div class="tab-sub">Létrehozás + meghívás</div>
+        </a>
+        <a class="tab {% if view == 'pending' %}active{% endif %}" href="/tasks?view=pending{% if day_filter %}&day={{ day_filter }}{% endif %}">
+          <div class="tab-title">Válaszra vár</div>
+          <div class="tab-sub">Ezekre még nincs válaszod</div>
+        </a>
+        <a class="tab {% if view == 'answered' %}active{% endif %}" href="/tasks?view=answered{% if day_filter %}&day={{ day_filter }}{% endif %}">
+          <div class="tab-title">Megválaszolt</div>
+          <div class="tab-sub">Módosítható válaszok</div>
+        </a>
       </div>
     </div>
 
     <div class="card">
       <h2 style="margin:0;">Feladatok</h2>
-      <div class="muted" style="margin-top:6px;">Csak a meghívott események látszanak.</div>
+      <div class="muted" style="margin-top:6px;">Mobil tipp: a meghívásnál koppints a mezőre, és alul feljön a keresős lista.</div>
 
-      <div class="event" style="margin-top:12px;">
-        <h3 style="margin-top:0;">Új esemény (szervező)</h3>
-        <form method="post" action="/add" style="display:grid; gap:10px;">
-          <input name="title" placeholder="Esemény neve" required />
-          <div class="row">
-            <input name="date_" type="date" required />
-            <input name="time" type="time" required />
-          </div>
-          <textarea name="description" maxlength="300" placeholder="Leírás (max 300 karakter)"></textarea>
-          <input name="invitees" placeholder="Meghívottak username (pl. anya, apa, bence)" />
-          <button type="submit">Hozzáadás + Meghívás</button>
-        </form>
-      </div>
+      {% if view == "new" %}
+        <div class="event" style="margin-top:12px;">
+          <h3 style="margin-top:0;">Új esemény létrehozása</h3>
 
-      <div class="divider"></div>
+          <form method="post" action="/add" style="display:grid; gap:10px;">
+            <input name="title" placeholder="Esemény neve" required />
 
-      <h3 style="margin:0;">Válaszra vár</h3>
-      <div class="muted" style="margin-top:6px;">Ezekre még nem válaszoltál.</div>
-
-      {% if pending_events|length == 0 %}
-        <div class="muted" style="margin-top:10px;">Nincs válaszra váró esemény 🎉</div>
-      {% endif %}
-
-      {% for e in pending_events %}
-        <div class="event">
-          <div><strong>{{ e.title }}</strong></div>
-          <div class="muted">{{ e.starts_at.strftime("%Y-%m-%d %H:%M") }}</div>
-          {% if e.description %}<div class="muted">Leírás: {{ e.description }}</div>{% endif %}
-          {% if e.creator_name %}<div class="muted">Szervező: {{ e.creator_name }}</div>{% endif %}
-
-          {% if e.is_creator %}
-            <div class="muted" style="margin-top:8px;">
-              <strong>Meghívottak:</strong>
-              {% if e.invitees|length == 0 %}(nincs){% endif %}
-              {% for p in e.invitees %} {{ p.name }} ({{ p.username }}){% if not loop.last %},{% endif %}{% endfor %}
-            </div>
-
-            <form method="post" action="/invite" class="row" style="margin-top:8px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input name="username" placeholder="Új meghívott username" />
-              <button type="submit">Meghívás</button>
-            </form>
-          {% endif %}
-
-          <h4>Visszajelzés + komment</h4>
-          <div class="row">
-            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input type="hidden" name="status" value="yes">
-              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)"></textarea>
-              <button type="submit">✅ Jövök</button>
-            </form>
-
-            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input type="hidden" name="status" value="maybe">
-              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)"></textarea>
-              <button type="submit">🤔 Talán</button>
-            </form>
-
-            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input type="hidden" name="status" value="no">
-              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)"></textarea>
-              <button type="submit">❌ Nem érek rá</button>
-            </form>
-          </div>
-
-          <h4 style="margin-top:14px;">Időpont-javaslat + visszajelzés</h4>
-          <form method="post" action="/suggest_time" class="row">
-            <input type="hidden" name="event_id" value="{{ e.id }}">
-            <input name="date_" type="date" required />
-            <input name="time" type="time" required />
-            <button type="submit">Javaslom</button>
-          </form>
-
-          {% for s in e.suggestions %}
-            <div style="margin-top:10px; padding:10px; border:1px solid #eee; border-radius:10px;">
-              <div class="row" style="justify-content:space-between;">
-                <div>
-                  <strong>{{ s.proposed_starts_at.strftime("%Y-%m-%d %H:%M") }}</strong>
-                  {% if s.accepted %} <span class="pill">Elfogadva</span>{% endif %}
-                  <div class="muted">Javasolta: {{ s.proposed_by_name }}</div>
-                </div>
-
+            <div class="row">
+              <div style="flex:1; min-width:240px;">
+                <div class="muted" style="margin-bottom:6px;">Kezdés</div>
                 <div class="row">
-                  <span class="pill">👍 {{ s.up }}</span>
-                  <span class="pill">👎 {{ s.down }}</span>
+                  <input name="start_date" type="date" required />
+                  <input name="start_time" type="time" required />
+                </div>
+              </div>
 
-                  <form method="post" action="/vote_time" style="display:inline;">
-                    <input type="hidden" name="suggestion_id" value="{{ s.id }}">
-                    <input type="hidden" name="vote" value="up">
-                    <button type="submit">
-                      {% if s.my_vote == "up" %}👍 Támogatom (visszavon){% else %}👍 Támogatom{% endif %}
-                    </button>
-                  </form>
-
-                  <form method="post" action="/vote_time" style="display:inline;">
-                    <input type="hidden" name="suggestion_id" value="{{ s.id }}">
-                    <input type="hidden" name="vote" value="down">
-                    <button type="submit">
-                      {% if s.my_vote == "down" %}👎 Nekem nem jó (visszavon){% else %}👎 Nekem nem jó{% endif %}
-                    </button>
-                  </form>
-
-                  {% if e.is_creator %}
-                    <form method="post" action="/accept_time" style="display:inline;">
-                      <input type="hidden" name="suggestion_id" value="{{ s.id }}">
-                      <button type="submit">✅ Elfogadom</button>
-                    </form>
-                  {% endif %}
+              <div style="flex:1; min-width:240px;">
+                <div class="muted" style="margin-bottom:6px;">Vége</div>
+                <div class="row">
+                  <input name="end_date" type="date" required />
+                  <input name="end_time" type="time" required />
                 </div>
               </div>
             </div>
-          {% endfor %}
-        </div>
-      {% endfor %}
 
-      <div class="divider"></div>
+            <textarea name="description" maxlength="300" placeholder="Leírás (max 300 karakter)"></textarea>
 
-      <h3 style="margin:0;">Már megválaszolt</h3>
-      <div class="muted" style="margin-top:6px;">Itt módosíthatod a választ.</div>
+            <!-- Modern picker (ÚJ eseményhez) -->
+            <div class="picker js-picker" data-title="Meghívottak">
+              <button type="button" class="picker-trigger js-picker-open">
+                <div class="title">Meghívottak kiválasztása</div>
+                <div class="sub js-picker-sub">Koppints a kiválasztáshoz</div>
+                <div class="chips js-picker-chips"></div>
+              </button>
 
-      {% if answered_events|length == 0 %}
-        <div class="muted" style="margin-top:10px;">Még nincs megválaszolt esemény.</div>
-      {% endif %}
+              <!-- Backdrop + sheet -->
+              <div class="picker-backdrop js-picker-backdrop" aria-hidden="true"></div>
+              <div class="picker-sheet js-picker-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+                <div class="picker-header">
+                  <div class="h-title">Meghívottak</div>
+                  <div class="h-actions">
+                    <button type="button" class="js-picker-clear">Összes törlése</button>
+                    <button type="button" class="js-picker-close">Bezár</button>
+                  </div>
+                </div>
 
-      {% for e in answered_events %}
-        <div class="event">
-          <div><strong>{{ e.title }}</strong></div>
-          <div class="muted">{{ e.starts_at.strftime("%Y-%m-%d %H:%M") }}</div>
-          {% if e.description %}<div class="muted">Leírás: {{ e.description }}</div>{% endif %}
-          {% if e.creator_name %}<div class="muted">Szervező: {{ e.creator_name }}</div>{% endif %}
+                <div class="picker-body">
+                  <input class="picker-search js-picker-search" placeholder="Keresés névre..." />
+                  <div class="picker-list js-picker-list">
+                    {% for u in users %}
+                      <label class="pick-row" data-name="{{ u.name|lower }}">
+                        <input type="checkbox" name="invitee_ids" value="{{ u.id }}">
+                        <div class="name">{{ u.name }}</div>
+                      </label>
+                    {% endfor %}
+                  </div>
+                </div>
 
-          {% if e.is_creator %}
-            <div class="muted" style="margin-top:8px;">
-              <strong>Meghívottak:</strong>
-              {% if e.invitees|length == 0 %}(nincs){% endif %}
-              {% for p in e.invitees %} {{ p.name }} ({{ p.username }}){% if not loop.last %},{% endif %}{% endfor %}
+                <div class="picker-footer">
+                  <button type="button" class="js-picker-done">Kész</button>
+                </div>
+              </div>
             </div>
 
-            <form method="post" action="/invite" class="row" style="margin-top:8px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input name="username" placeholder="Új meghívott username" />
-              <button type="submit">Meghívás</button>
-            </form>
-          {% endif %}
-
-          <h4>Visszajelzés + komment</h4>
-
-          <div class="row">
-            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input type="hidden" name="status" value="yes">
-              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "yes" %}{{ e.my_comment or "" }}{% endif %}</textarea>
-              <button type="submit">✅ Jövök</button>
-            </form>
-
-            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input type="hidden" name="status" value="maybe">
-              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "maybe" %}{{ e.my_comment or "" }}{% endif %}</textarea>
-              <button type="submit">🤔 Talán</button>
-            </form>
-
-            <form method="post" action="/respond" style="flex:1; min-width:240px; display:grid; gap:10px;">
-              <input type="hidden" name="event_id" value="{{ e.id }}">
-              <input type="hidden" name="status" value="no">
-              <textarea name="comment" maxlength="300" placeholder="Komment (max 300)">{% if e.my_status == "no" %}{{ e.my_comment or "" }}{% endif %}</textarea>
-              <button type="submit">❌ Nem érek rá</button>
-            </form>
-          </div>
+            <button type="submit">Hozzáadás + Meghívás</button>
+          </form>
         </div>
-      {% endfor %}
+      {% endif %}
+
+      {% if view == "pending" %}
+        <div class="divider"></div>
+        <h3 style="margin:0;">Válaszra vár</h3>
+        {% if pending_events|length == 0 %}
+          <div class="muted" style="margin-top:10px;">Nincs válaszra váró esemény 🎉</div>
+        {% endif %}
+        {% for e in pending_events %}
+          {% include "tasks_event_block.html" %}
+        {% endfor %}
+      {% endif %}
+
+      {% if view == "answered" %}
+        <div class="divider"></div>
+        <h3 style="margin:0;">Megválaszolt</h3>
+        {% if answered_events|length == 0 %}
+          <div class="muted" style="margin-top:10px;">Még nincs megválaszolt esemény.</div>
+        {% endif %}
+        {% for e in answered_events %}
+          {% include "tasks_event_block.html" %}
+        {% endfor %}
+      {% endif %}
     </div>
   </div>
+
+  <script>
+    (function () {
+      const pickers = Array.from(document.querySelectorAll(".js-picker"));
+
+      function normalize(s) {
+        return (s || "").toLowerCase().trim();
+      }
+
+      function updateUI(picker) {
+        const sub = picker.querySelector(".js-picker-sub");
+        const chipsWrap = picker.querySelector(".js-picker-chips");
+        const checkboxes = Array.from(picker.querySelectorAll('input[type="checkbox"][name="invitee_ids"]'));
+        const checked = checkboxes.filter(cb => cb.checked);
+
+        chipsWrap.innerHTML = "";
+        if (checked.length === 0) {
+          sub.textContent = "Koppints a kiválasztáshoz";
+          return;
+        }
+
+        sub.textContent = checked.length + " kiválasztva";
+        checked.slice(0, 6).forEach(cb => {
+          const row = cb.closest(".pick-row");
+          const nameEl = row ? row.querySelector(".name") : null;
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = nameEl ? nameEl.textContent : "Kiválasztott";
+          chipsWrap.appendChild(chip);
+        });
+
+        if (checked.length > 6) {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = "+" + (checked.length - 6);
+          chipsWrap.appendChild(chip);
+        }
+      }
+
+      function openPicker(picker) {
+        const backdrop = picker.querySelector(".js-picker-backdrop");
+        const sheet = picker.querySelector(".js-picker-sheet");
+        backdrop.classList.add("open");
+        sheet.classList.add("open");
+        document.body.style.overflow = "hidden";
+        const search = picker.querySelector(".js-picker-search");
+        if (search) {
+          search.value = "";
+          filterList(picker, "");
+          setTimeout(() => search.focus(), 50);
+        }
+      }
+
+      function closePicker(picker) {
+        const backdrop = picker.querySelector(".js-picker-backdrop");
+        const sheet = picker.querySelector(".js-picker-sheet");
+        backdrop.classList.remove("open");
+        sheet.classList.remove("open");
+        document.body.style.overflow = "";
+        updateUI(picker);
+      }
+
+      function filterList(picker, term) {
+        const q = normalize(term);
+        const rows = Array.from(picker.querySelectorAll(".pick-row"));
+        rows.forEach(row => {
+          const name = row.getAttribute("data-name") || "";
+          row.style.display = name.includes(q) ? "" : "none";
+        });
+      }
+
+      pickers.forEach(picker => {
+        const openBtn = picker.querySelector(".js-picker-open");
+        const closeBtn = picker.querySelector(".js-picker-close");
+        const doneBtn = picker.querySelector(".js-picker-done");
+        const clearBtn = picker.querySelector(".js-picker-clear");
+        const backdrop = picker.querySelector(".js-picker-backdrop");
+        const search = picker.querySelector(".js-picker-search");
+
+        openBtn.addEventListener("click", () => openPicker(picker));
+        closeBtn.addEventListener("click", () => closePicker(picker));
+        doneBtn.addEventListener("click", () => closePicker(picker));
+        backdrop.addEventListener("click", () => closePicker(picker));
+
+        clearBtn.addEventListener("click", () => {
+          const checkboxes = Array.from(picker.querySelectorAll('input[type="checkbox"][name="invitee_ids"]'));
+          checkboxes.forEach(cb => cb.checked = false);
+          updateUI(picker);
+        });
+
+        picker.addEventListener("change", (e) => {
+          if (e.target && e.target.matches('input[type="checkbox"][name="invitee_ids"]')) {
+            updateUI(picker);
+          }
+        });
+
+        if (search) {
+          search.addEventListener("input", () => filterList(picker, search.value));
+        }
+
+        // init UI
+        updateUI(picker);
+      });
+
+      // ESC to close any open
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        pickers.forEach(p => {
+          const sheet = p.querySelector(".js-picker-sheet");
+          if (sheet && sheet.classList.contains("open")) closePicker(p);
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
